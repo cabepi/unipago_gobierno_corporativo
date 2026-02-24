@@ -1,0 +1,42 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f8fafc;
+}
+
+/* Custom Utilities from Prototype */
+.status-badge-finalizada {
+    background-color: #e6f4ea;
+    color: #1e7e34;
+    font-weight: 600;
+    font-size: 0.75rem;
+}
+
+.status-badge-cancelada {
+    background-color: #fce8e8;
+    color: #d93025;
+    font-weight: 600;
+    font-size: 0.75rem;
+}
+
+.active-tab-border {
+    border-bottom: 3px solid #dc2626;
+}
+
+.sidebar-indicator-ordinaria {
+    width: 4px;
+    background-color: #15803d;
+    border-radius: 4px;
+}
+
+.sidebar-indicator-extraordinaria {
+    width: 4px;
+    background-color: #eab308;
+    border-radius: 4px;
+}
+
+.meeting-row:hover {
+    background-color: #f9fafb;
+}
