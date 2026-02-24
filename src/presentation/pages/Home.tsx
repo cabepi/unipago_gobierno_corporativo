@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card } from '../components/Card';
 import { Tabs } from '../components/Tabs';
 import { MeetingRow } from '../components/MeetingRow';
@@ -8,9 +8,10 @@ import type { BadgeStatus } from '../components/Badge';
 
 export interface MeetingData {
     id: string;
-    type: 'Ordinaria' | 'Extraordinaria';
+    type: 'Ordinaria' | 'Extraordinaria' | string;
     date: string;
     time: string;
+    location: string;
     secretary: {
         name: string;
         avatarUrl: string;
@@ -23,116 +24,49 @@ export interface MeetingData {
     status: BadgeStatus;
 }
 
-// --- MOCK DATA ---
-const PENDIENTES_DATA: MeetingData[] = [
-    {
-        id: 'p1',
-        type: 'Ordinaria',
-        date: 'Febrero 20, 2024',
-        time: '12:00 m',
-        secretary: { name: 'Yudelka Roberts', avatarUrl: 'https://i.pravatar.cc/150?u=yudelka' },
-        participants: { avatars: [{ id: '1', src: 'https://i.pravatar.cc/150?img=1', alt: 'P1' }] },
-        status: 'PENDIENTE'
-    },
-    {
-        id: 'p2',
-        type: 'Extraordinaria',
-        date: 'Febrero 25, 2024',
-        time: '04:00 pm',
-        secretary: { name: 'Yudelka Roberts', avatarUrl: 'https://i.pravatar.cc/150?u=yudelka' },
-        participants: { avatars: [{ id: '1', src: 'https://i.pravatar.cc/150?img=2', alt: 'P2' }] },
-        status: 'PENDIENTE'
-    }
-];
+// Enums/Status handled dynamically through API response now
 
-const PROXIMAS_DATA: MeetingData[] = [
-    {
-        id: 'pr1',
-        type: 'Ordinaria',
-        date: 'Marzo 12, 2024',
-        time: '12:00 m',
-        secretary: { name: 'Yudelka Roberts', avatarUrl: 'https://i.pravatar.cc/150?u=yudelka' },
-        participants: {
-            avatars: [
-                { id: '1', src: 'https://i.pravatar.cc/150?img=3', alt: 'P3' },
-                { id: '2', src: 'https://i.pravatar.cc/150?img=4', alt: 'P4' }
-            ],
-            overflowLabel: '+10',
-            overflowColorClass: 'bg-emerald-600'
-        },
-        status: 'EN PROCESO'
-    },
-    {
-        id: 'pr2',
-        type: 'Extraordinaria',
-        date: 'Marzo 26, 2024',
-        time: '10:00 am',
-        secretary: { name: 'Yudelka Roberts', avatarUrl: 'https://i.pravatar.cc/150?u=yudelka' },
-        participants: {
-            avatars: [{ id: '1', src: 'https://i.pravatar.cc/150?img=5', alt: 'P5' }],
-            overflowLabel: 'S',
-            overflowColorClass: 'bg-red-500'
-        },
-        status: 'PENDIENTE'
-    },
-    {
-        id: 'pr3',
-        type: 'Extraordinaria',
-        date: 'Abril 05, 2024',
-        time: '02:00 pm',
-        secretary: { name: 'Yudelka Roberts', avatarUrl: 'https://i.pravatar.cc/150?u=yudelka' },
-        participants: { avatars: [{ id: '1', src: 'https://i.pravatar.cc/150?img=6', alt: 'P6' }] },
-        status: 'PENDIENTE'
-    },
-    {
-        id: 'pr4',
-        type: 'Ordinaria',
-        date: 'Abril 15, 2024',
-        time: '11:00 am',
-        secretary: { name: 'Yudelka Roberts', avatarUrl: 'https://i.pravatar.cc/150?u=yudelka' },
-        participants: { avatars: [{ id: '1', src: 'https://i.pravatar.cc/150?img=7', alt: 'P7' }] },
-        status: 'PENDIENTE'
-    },
-    {
-        id: 'pr5',
-        type: 'Ordinaria',
-        date: 'Mayo 02, 2024',
-        time: '09:00 am',
-        secretary: { name: 'Yudelka Roberts', avatarUrl: 'https://i.pravatar.cc/150?u=yudelka' },
-        participants: { avatars: [{ id: '1', src: 'https://i.pravatar.cc/150?img=8', alt: 'P8' }] },
-        status: 'PENDIENTE'
-    }
-];
-
-const PASADAS_DATA: MeetingData[] = [
-    {
-        id: 'pa1',
-        type: 'Ordinaria',
-        date: 'Enero 12, 2024',
-        time: '12:00 m',
-        secretary: { name: 'Yudelka Roberts', avatarUrl: 'https://i.pravatar.cc/150?u=yudelka' },
-        participants: { avatars: [{ id: '1', src: 'https://i.pravatar.cc/150?img=9', alt: 'P9' }] },
-        status: 'finalizada'
-    },
-    {
-        id: 'pa2',
-        type: 'Extraordinaria',
-        date: 'Diciembre 20, 2023',
-        time: '03:00 pm',
-        secretary: { name: 'Yudelka Roberts', avatarUrl: 'https://i.pravatar.cc/150?u=yudelka' },
-        participants: { avatars: [{ id: '1', src: 'https://i.pravatar.cc/150?img=10', alt: 'P10' }] },
-        status: 'cancelada'
-    }
-];
 
 export default function Home() {
     const [activeTab, setActiveTab] = useState('proximas');
-    const [selectedMeeting, setSelectedMeeting] = useState<MeetingData | null>(null);
+    const [selectedMeeting, setSelectedMeeting] = useState<any | null>(null);
+    const [meetings, setMeetings] = useState<MeetingData[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    const fetchMeetings = async () => {
+        try {
+            const res = await fetch('/api/meetings');
+            const data = await res.json();
+
+            // Map the API data array of participants to AvatarItem array structurally
+            const mappedData: MeetingData[] = data.map((m: any) => ({
+                ...m,
+                participants: {
+                    ...m.participants,
+                    avatars: m.participants.list?.map((p: any, idx: number) => ({
+                        id: `p-${idx}`,
+                        src: p.url,
+                        alt: p.name
+                    })) || []
+                }
+            }));
+
+            setMeetings(mappedData);
+        } catch (error) {
+            console.error('Error fetching meetings:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchMeetings();
+    }, []);
 
     const getCurrentMeetings = () => {
-        if (activeTab === 'pendientes') return PENDIENTES_DATA;
-        if (activeTab === 'proximas') return PROXIMAS_DATA;
-        return PASADAS_DATA;
+        if (activeTab === 'pendientes') return meetings.filter(m => m.status === 'PENDIENTE FIRMA');
+        if (activeTab === 'proximas') return meetings.filter(m => m.status === 'PENDIENTE' || m.status === 'EN PROCESO');
+        return meetings.filter(m => ['FINALIZADA', 'CANCELADA'].includes(m.status.toUpperCase()));
     };
 
     const handleRowDownload = (meeting: MeetingData) => {
@@ -168,7 +102,7 @@ export default function Home() {
                         <section className="px-8 py-6 grid grid-cols-1 md:grid-cols-3 gap-6" data-purpose="summary-cards">
                             <Card className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-4xl font-bold text-slate-800">25</p>
+                                    <p className="text-4xl font-bold text-slate-800">{meetings.length}</p>
                                     <p className="text-sm font-medium text-gray-500 mt-1">Total de Actas</p>
                                 </div>
                                 <div className="text-gray-400">
@@ -180,7 +114,7 @@ export default function Home() {
 
                             <Card className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-4xl font-bold text-slate-800">1</p>
+                                    <p className="text-4xl font-bold text-slate-800">{meetings.filter(m => m.status === 'PENDIENTE FIRMA').length}</p>
                                     <p className="text-sm font-medium text-gray-500 mt-1">Pendientes de Firma</p>
                                 </div>
                                 <div className="text-gray-400">
@@ -195,7 +129,7 @@ export default function Home() {
                                     <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"></path>
                                 </svg>
                                 <p className="text-sm font-bold">Ver Actas Pendientes</p>
-                                <p className="text-xs opacity-90">1 acta pendiente</p>
+                                <p className="text-xs opacity-90">{meetings.filter(m => m.status === 'PENDIENTE FIRMA').length} actas pendientes</p>
                             </Card>
                         </section>
 
@@ -205,9 +139,9 @@ export default function Home() {
                                 activeTabId={activeTab}
                                 onTabChange={setActiveTab}
                                 tabs={[
-                                    { id: 'pendientes', label: 'Pendientes de Firma', count: 2 },
-                                    { id: 'proximas', label: 'Próximas Reuniones', count: 5 },
-                                    { id: 'pasadas', label: 'Reuniones Pasadas', count: 33 }
+                                    { id: 'pendientes', label: 'Pendientes de Firma', count: meetings.filter(m => m.status === 'PENDIENTE FIRMA').length },
+                                    { id: 'proximas', label: 'Próximas Reuniones', count: meetings.filter(m => m.status === 'PENDIENTE' || m.status === 'EN PROCESO').length },
+                                    { id: 'pasadas', label: 'Reuniones Pasadas', count: meetings.filter(m => ['FINALIZADA', 'CANCELADA'].includes(m.status.toUpperCase())).length }
                                 ]}
                             />
 
@@ -248,15 +182,19 @@ export default function Home() {
 
                         {/* Meeting List Section */}
                         <section className="px-8 pb-8" data-purpose="meeting-list">
-                            {currentMeetings.map((meeting) => (
+                            {isLoading ? (
+                                <div className="py-12 text-center text-slate-500 font-medium">Cargando actas...</div>
+                            ) : currentMeetings.length === 0 ? (
+                                <div className="py-12 text-center text-slate-500 font-medium">No hay actas disponibles en esta pestaña.</div>
+                            ) : currentMeetings.map((meeting) => (
                                 <div key={meeting.id} onClick={() => setSelectedMeeting(meeting)} className="cursor-pointer">
                                     <MeetingRow
-                                        type={meeting.type === 'Ordinaria' ? 'Reunión Ordinaria' : 'Reunión Extraordinaria'}
+                                        type={meeting.type as 'Reunión Ordinaria' | 'Reunión Extraordinaria'}
                                         date={meeting.date}
                                         time={meeting.time}
-                                        secretaryName={meeting.secretary.name}
+                                        secretaryName={meeting.secretary?.name || 'Por Asignar'}
                                         secretaryRole="Secretario"
-                                        secretaryAvatar={meeting.secretary.avatarUrl}
+                                        secretaryAvatar={meeting.secretary?.avatarUrl || ''}
                                         participants={meeting.participants.avatars}
                                         participantsOverflowLabel={meeting.participants.overflowLabel}
                                         participantsOverflowColorClass={meeting.participants.overflowColorClass}

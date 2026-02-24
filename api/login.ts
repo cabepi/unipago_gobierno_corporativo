@@ -10,7 +10,12 @@ export default async function handler(req: Request, res: Response) {
     if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
 
     try {
-        const { rows } = await query('SELECT * FROM users WHERE email = $1', [email]);
+        const { rows } = await query(`
+            SELECT u.*, r.name as role_name 
+            FROM corporate_governance.users u 
+            LEFT JOIN corporate_governance.roles r ON u.role_code = r.code
+            WHERE u.email = $1
+        `, [email]);
         if (rows.length === 0) return res.status(401).json({ error: 'Invalid credentials' });
 
         const user = rows[0];
@@ -18,14 +23,14 @@ export default async function handler(req: Request, res: Response) {
         if (!isValid) return res.status(401).json({ error: 'Invalid credentials' });
 
         const token = jwt.sign(
-            { id: user.id, role: user.role },
+            { id: user.id, role: user.role_name, roleCode: user.role_code },
             process.env.JWT_SECRET || 'default_secret',
             { expiresIn: '1h' }
         );
 
         return res.status(200).json({
             token,
-            user: { id: user.id, email: user.email, name: user.name, role: user.role }
+            user: { id: user.id, email: user.email, name: user.name, role: user.role_name, roleCode: user.role_code }
         });
     } catch (error) {
         console.error('Login error:', error);

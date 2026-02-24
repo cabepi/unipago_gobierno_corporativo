@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PlusCircle, Search, Users, ExternalLink } from 'lucide-react';
 import { Badge } from '../components/Badge';
 import { Card } from '../components/Card';
@@ -29,47 +29,34 @@ export interface Committee {
     createdAt: string;
 }
 
-const INITIAL_COMMITTEES: Committee[] = [
-    {
-        id: 'c1',
-        name: 'Comité de Auditoría',
-        type: 'Interno',
-        description: 'Encargado de supervisar los procesos contables, la información financiera y las auditorías internas.',
-        createdAt: '2023-10-01',
-        members: [
-            { userId: 'u1', role: 'Secretario' },
-            { userId: 'u2', role: 'Miembro' },
-            { userId: 'u6', role: 'Miembro' },
-            { userId: 'u3', role: 'Soporte' }
-        ]
-    },
-    {
-        id: 'c2',
-        name: 'Asamblea de Accionistas',
-        type: 'Externo',
-        description: 'Reunión general de los accionistas para la toma de decisiones estratégicas de la empresa.',
-        createdAt: '2023-09-15',
-        members: [
-            { userId: 'u1', role: 'Secretario' },
-            { userId: 'u4', role: 'Miembro' },
-            { userId: 'u5', role: 'Miembro' },
-            { userId: 'u2', role: 'Miembro' }
-        ]
-    }
-];
+
 
 export function Committees() {
-    const [committees, setCommittees] = useState<Committee[]>(INITIAL_COMMITTEES);
+    const [committees, setCommittees] = useState<Committee[]>([]);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [isLoading, setIsLoading] = useState(true);
 
-    const handleCreateCommittee = (newCommittee: Omit<Committee, 'id' | 'createdAt'>) => {
-        const committee: Committee = {
-            ...newCommittee,
-            id: `c${Date.now()}`,
-            createdAt: new Date().toISOString().split('T')[0]
-        };
-        setCommittees([...committees, committee]);
+    const fetchCommittees = async () => {
+        try {
+            const res = await fetch('/api/committees');
+            const data = await res.json();
+            setCommittees(data);
+        } catch (error) {
+            console.error('Error fetching committees:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchCommittees();
+    }, []);
+
+    const handleCreateCommittee = () => {
+        // Refetch fully to get correct nested user info right away from DB
+        fetchCommittees();
+        setIsCreateModalOpen(false);
     };
 
     const filteredCommittees = committees.filter(c =>
@@ -78,14 +65,12 @@ export function Committees() {
     );
 
     // Helper to render avatars for a committee
-    const renderMembersAvatars = (membersRoles: CommitteeRole[]) => {
-        const avatars = membersRoles.map(mr => {
-            const user = MOCK_USERS.find(u => u.id === mr.userId);
-            return {
-                url: user?.avatarUrl || '',
-                name: user?.name || ''
-            };
-        });
+    const renderMembersAvatars = (membersRoles: any[]) => {
+        const avatars = membersRoles.filter(mr => mr.user).map((mr, idx) => ({
+            id: mr.userId || `member-${idx}`,
+            src: mr.user.avatarUrl || '',
+            alt: mr.user.name || ''
+        }));
 
         return (
             <AvatarGroup
@@ -132,7 +117,11 @@ export function Committees() {
 
                 {/* Committees Grid */}
                 <div className="p-8">
-                    {filteredCommittees.length === 0 ? (
+                    {isLoading ? (
+                        <div className="text-center py-12">
+                            <h3 className="text-lg font-bold text-slate-500">Cargando comités...</h3>
+                        </div>
+                    ) : filteredCommittees.length === 0 ? (
                         <div className="text-center py-12">
                             <Users className="w-12 h-12 text-slate-300 mx-auto mb-3" />
                             <h3 className="text-lg font-bold text-slate-700">No se encontraron comités</h3>

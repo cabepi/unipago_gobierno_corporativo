@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { X, ShieldAlert, Check } from 'lucide-react';
-import { MOCK_USERS, type Committee, type CommitteeRole } from '../pages/Committees';
+import { useState, useEffect } from 'react';
+import { X, ShieldAlert, Check, Loader2 } from 'lucide-react';
+import type { Committee, CommitteeRole } from '../pages/Committees';
 
 interface CommitteeFormModalProps {
     isOpen: boolean;
@@ -15,6 +15,17 @@ export function CommitteeFormModal({ isOpen, onClose, onSubmit }: CommitteeFormM
     const [members, setMembers] = useState<CommitteeRole[]>([]);
     const [searchUser, setSearchUser] = useState('');
     const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [usersList, setUsersList] = useState<any[]>([]);
+
+    useEffect(() => {
+        if (isOpen && usersList.length === 0) {
+            fetch('/api/users')
+                .then(res => res.json())
+                .then(data => setUsersList(data))
+                .catch(err => console.error('Error fetching users:', err));
+        }
+    }, [isOpen]);
 
     if (!isOpen) return null;
 
@@ -51,7 +62,7 @@ export function CommitteeFormModal({ isOpen, onClose, onSubmit }: CommitteeFormM
         setMembers(members.map(m => m.userId === userId ? { ...m, role: newRole } : m));
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         if (!name.trim()) {
@@ -63,24 +74,45 @@ export function CommitteeFormModal({ isOpen, onClose, onSubmit }: CommitteeFormM
             return;
         }
 
-        onSubmit({
-            name,
-            description,
-            type,
-            members,
-        });
+        setIsLoading(true);
+        try {
+            const response = await fetch('/api/committees', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name,
+                    description,
+                    type,
+                    members
+                })
+            });
 
-        // Reset form
-        setName('');
-        setDescription('');
-        setType('Interno');
-        setMembers([]);
-        setError('');
-        onClose();
+            if (!response.ok) {
+                throw new Error('Error al crear el comité');
+            }
+
+            const data = await response.json();
+
+            // Re-fetch or simulate optimistic update in parent 
+            // (parent should ideally re-fetch from API)
+            onSubmit(data.committee);
+
+            // Reset form
+            setName('');
+            setDescription('');
+            setType('Interno');
+            setMembers([]);
+            setError('');
+            onClose();
+        } catch (err: any) {
+            setError(err.message || 'Ocurrió un error inesperado');
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     // Filter available users to add
-    const availableUsers = MOCK_USERS.filter(u =>
+    const availableUsers = usersList.filter(u =>
         !members.find(m => m.userId === u.id) &&
         u.name.toLowerCase().includes(searchUser.toLowerCase()) &&
         (type === 'Externo' || !u.isExternal) // Internal commitees exclude external users
@@ -137,7 +169,7 @@ export function CommitteeFormModal({ isOpen, onClose, onSubmit }: CommitteeFormM
                                         onClick={() => {
                                             setType('Interno');
                                             // Auto-remove external users if switching to Internal
-                                            setMembers(members.filter(m => !MOCK_USERS.find(u => u.id === m.userId)?.isExternal));
+                                            setMembers(members.filter(m => !usersList.find(u => u.id === m.userId)?.isExternal));
                                         }}
                                         className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 ${type === 'Interno' ? 'border-indigo-500 bg-indigo-50/50' : 'border-slate-100 bg-white hover:border-slate-200'}`}
                                     >
@@ -236,7 +268,7 @@ export function CommitteeFormModal({ isOpen, onClose, onSubmit }: CommitteeFormM
                                     ) : (
                                         <ul className="divide-y divide-slate-100">
                                             {members.map(member => {
-                                                const user = MOCK_USERS.find(u => u.id === member.userId);
+                                                const user = usersList.find(u => u.id === member.userId);
                                                 if (!user) return null;
 
                                                 return (
@@ -298,10 +330,11 @@ export function CommitteeFormModal({ isOpen, onClose, onSubmit }: CommitteeFormM
                     <button
                         type="submit"
                         form="committee-form"
-                        disabled={!name.trim() || !hasSecretary}
+                        disabled={!name.trim() || !hasSecretary || isLoading}
                         className="px-5 py-2 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 disabled:cursor-not-allowed rounded-lg transition-colors shadow-sm flex items-center gap-2"
                     >
-                        Confirmar Comité
+                        {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                        {isLoading ? 'Guardando...' : 'Confirmar Comité'}
                     </button>
                 </div>
 
