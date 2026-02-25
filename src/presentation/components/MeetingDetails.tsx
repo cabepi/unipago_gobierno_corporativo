@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, AlertCircle, Loader2 } from 'lucide-react';
+import { ArrowLeft, AlertCircle, Loader2, Plus } from 'lucide-react';
 import { Badge } from './Badge';
 import { SignatureModal } from './SignatureModal';
 import type { MeetingData } from '../pages/Home';
@@ -16,12 +16,15 @@ export function MeetingDetails({ meeting, onBack }: MeetingDetailsProps) {
     const [isLoading, setIsLoading] = useState(true);
     const [newComment, setNewComment] = useState('');
     const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
     const isOrdinaria = meeting.type === 'Reunión Ordinaria' || meeting.type === 'Ordinaria';
 
     useEffect(() => {
+        const mockUserId = 'ea912a76-2f08-41df-a5e7-2b0e77d33d73'; // Laura from seed
+
         const fetchDetails = async () => {
             try {
-                const res = await fetch(`/api/meeting?id=${meeting.id}`);
+                const res = await fetch(`/api/meeting?id=${meeting.id}&userId=${mockUserId}`);
                 const data = await res.json();
                 setMeetingDetails(data);
             } catch (error) {
@@ -48,6 +51,47 @@ export function MeetingDetails({ meeting, onBack }: MeetingDetailsProps) {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
+    };
+
+    const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        setIsUploading(true);
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('meetingId', meeting.id);
+        const mockUserId = 'ea912a76-2f08-41df-a5e7-2b0e77d33d73'; // Laura from seed
+        formData.append('userId', mockUserId);
+
+        // Determinar categoría por defecto según tipo de archivo (solo un caso base)
+        const isPdf = file.type === 'application/pdf';
+        formData.append('category', isPdf ? 'ACTA' : 'SUPPORT_DOC');
+
+        try {
+            const res = await fetch('/api/documents/upload', {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (res.ok) {
+                // Refrescar para ver el documento subido
+                const detailRes = await fetch(`/api/meeting?id=${meeting.id}&userId=${mockUserId}`);
+                const data = await detailRes.json();
+                setMeetingDetails(data);
+            } else {
+                const text = await res.text();
+                console.error('Upload Error:', text);
+                alert('Error subiendo archivo: ' + text);
+            }
+        } catch (error) {
+            console.error('Upload catch error:', error);
+            alert('Error en la conexión al subir archivo.');
+        } finally {
+            setIsUploading(false);
+            // reset input
+            event.target.value = '';
+        }
     };
 
     const handleAddComment = async () => {
@@ -244,7 +288,28 @@ export function MeetingDetails({ meeting, onBack }: MeetingDetailsProps) {
                                 <div className="space-y-6">
                                     {/* Support Documents & Presentations */}
                                     <div>
-                                        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Previo a Reunión</h4>
+                                        <div className="flex justify-between items-center mb-3">
+                                            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Previo a Reunión</h4>
+
+                                            {(meetingDetails?.currentUserRole === 'SECRETARY' || meetingDetails?.currentUserRole === 'SUPPORT') && (
+                                                <div className="relative">
+                                                    <input
+                                                        type="file"
+                                                        id="file-upload"
+                                                        className="hidden"
+                                                        onChange={handleFileUpload}
+                                                        disabled={isUploading}
+                                                    />
+                                                    <label
+                                                        htmlFor="file-upload"
+                                                        className={`text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-2 py-1 flex items-center gap-1 rounded cursor-pointer transition-colors ${isUploading ? 'opacity-50 cursor-wait' : ''}`}
+                                                    >
+                                                        {isUploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
+                                                        {isUploading ? 'Subiendo...' : 'Agregar Doc'}
+                                                    </label>
+                                                </div>
+                                            )}
+                                        </div>
                                         <div className="space-y-3">
                                             {meetingDetails?.documents?.filter((d: any) => d.category !== 'ACTA').map((doc: any) => (
                                                 <div
@@ -259,7 +324,11 @@ export function MeetingDetails({ meeting, onBack }: MeetingDetailsProps) {
                                                         </div>
                                                     </div>
                                                     <div className="pt-0.5">
-                                                        <p className="font-bold text-xs text-slate-700 group-hover:text-blue-600 transition-colors leading-tight line-clamp-2">{doc.name}</p>
+                                                        {doc.url ? (
+                                                            <a href={doc.url} target="_blank" rel="noreferrer" className="font-bold text-xs text-slate-700 group-hover:text-blue-600 transition-colors leading-tight line-clamp-2 hover:underline">{doc.name}</a>
+                                                        ) : (
+                                                            <p className="font-bold text-xs text-slate-700 group-hover:text-blue-600 transition-colors leading-tight line-clamp-2">{doc.name}</p>
+                                                        )}
                                                         <p className="text-[10px] text-slate-400 mt-1">{doc.date}</p>
                                                     </div>
                                                 </div>
@@ -287,7 +356,11 @@ export function MeetingDetails({ meeting, onBack }: MeetingDetailsProps) {
                                                         </div>
                                                     </div>
                                                     <div className="pt-0.5">
-                                                        <p className="font-bold text-xs text-slate-700 group-hover:text-emerald-600 transition-colors leading-tight line-clamp-2">{doc.name}</p>
+                                                        {doc.url ? (
+                                                            <a href={doc.url} target="_blank" rel="noreferrer" className="font-bold text-xs text-slate-700 group-hover:text-emerald-600 transition-colors leading-tight line-clamp-2 hover:underline">{doc.name}</a>
+                                                        ) : (
+                                                            <p className="font-bold text-xs text-slate-700 group-hover:text-emerald-600 transition-colors leading-tight line-clamp-2">{doc.name}</p>
+                                                        )}
                                                         <p className="text-[10px] text-slate-400 mt-1">{doc.date}</p>
                                                     </div>
                                                 </div>

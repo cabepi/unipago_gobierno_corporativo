@@ -13,6 +13,7 @@ export interface MeetingData {
     time: string;
     modality?: 'PRESENCIAL' | 'VIRTUAL';
     location?: string;
+    icsFileUrl?: string;
     secretary: {
         name: string;
         avatarUrl: string;
@@ -193,6 +194,9 @@ export default function Home() {
                                         type={meeting.type as 'Reunión Ordinaria' | 'Reunión Extraordinaria'}
                                         date={meeting.date}
                                         time={meeting.time}
+                                        modality={meeting.modality}
+                                        location={meeting.location}
+                                        icsFileUrl={meeting.icsFileUrl}
                                         secretaryName={meeting.secretary?.name || 'Por Asignar'}
                                         secretaryRole="Secretario"
                                         secretaryAvatar={meeting.secretary?.avatarUrl || ''}

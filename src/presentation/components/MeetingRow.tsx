@@ -1,4 +1,4 @@
-import { Edit2, Download, ExternalLink, MapPin, Link as LinkIcon } from 'lucide-react';
+import { Edit2, Download, ExternalLink, MapPin, Link as LinkIcon, CalendarDays } from 'lucide-react';
 import { Badge, type BadgeStatus } from './Badge';
 import { AvatarGroup, type AvatarItem } from './AvatarGroup';
 
@@ -8,6 +8,7 @@ export interface MeetingRowProps {
     time: string;
     modality?: 'PRESENCIAL' | 'VIRTUAL';
     location?: string;
+    icsFileUrl?: string;
     secretaryName: string;
     secretaryRole: string;
     secretaryAvatar: string;
@@ -26,6 +27,7 @@ export function MeetingRow({
     time,
     modality,
     location,
+    icsFileUrl,
     secretaryName,
     secretaryRole,
     secretaryAvatar,
@@ -66,6 +68,14 @@ export function MeetingRow({
                             <span className="text-xs font-semibold text-slate-500 truncate max-w-[120px]" title={location || 'Ubicación no especificada'}>
                                 {location ? location : 'No especificada'}
                             </span>
+                        </div>
+                    )}
+                    {icsFileUrl && (
+                        <div className="flex items-center gap-1.5 mt-1.5">
+                            <CalendarDays className="w-3.5 h-3.5 text-indigo-500" />
+                            <a href={icsFileUrl} target="_blank" rel="noreferrer" className="text-xs font-bold text-indigo-600 hover:text-indigo-700 hover:underline">
+                                Descargar .ics
+                            </a>
                         </div>
                     )}
                 </div>

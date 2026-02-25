@@ -1,5 +1,18 @@
 import type { Request, Response } from 'express';
 import { query } from '../src/data/db';
+import multer from 'multer';
+import { put } from '@vercel/blob';
+
+export const config = {
+    api: {
+        bodyParser: false,
+    },
+};
+
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 5 * 1024 * 1024 }
+}).single('icsFile');
 
 export default async function handler(req: Request, res: Response) {
     if (req.method === 'POST') {
@@ -17,6 +30,7 @@ export default async function handler(req: Request, res: Response) {
                 m.time, 
                 m.modality,
                 m.location,
+                m.ics_file_url as "icsFileUrl",
                 m.status,
                 c.name as "committeeName",
                 json_build_object(
@@ -76,6 +90,7 @@ export default async function handler(req: Request, res: Response) {
                 time: r.time.substring(0, 5), // '10:00:00' -> '10:00'
                 modality: r.modality,
                 location: r.location,
+                icsFileUrl: r.icsFileUrl,
                 status: statusMap[r.status] || 'PENDIENTE',
                 secretary: r.secretary ? {
                     name: r.secretary.name,
@@ -103,39 +118,65 @@ export default async function handler(req: Request, res: Response) {
 }
 
 async function handlePost(req: Request, res: Response) {
-    const { committeeId, date, time, modality, location, type } = req.body;
-
-    if (!committeeId || !date || !time || !type) {
-        return res.status(400).json({ error: 'Missing required fields' });
-    }
-
-    try {
-        const { rows: insertedMeeting } = await query(`
-            INSERT INTO corporate_governance.meetings (committee_id, type, date, time, modality, location, status)
-            VALUES ($1, $2, $3, $4, $5, $6, 'SCHEDULED')
-            RETURNING id
-        `, [committeeId, type === 'Ordinaria' ? 'ORDINARY' : 'EXTRAORDINARY', date, time, modality || 'PRESENCIAL', location || null]);
-
-        const newMeetingId = insertedMeeting[0].id;
-
-        const { rows: members } = await query(`
-            SELECT user_id FROM corporate_governance.committee_members
-            WHERE committee_id = $1
-        `, [committeeId]);
-
-        if (members.length > 0) {
-            const insertParticipants = `
-                INSERT INTO corporate_governance.meeting_participants (meeting_id, user_id, status)
-                VALUES ($1, $2, 'PRESENT')
-            `;
-            for (const member of members) {
-                await query(insertParticipants, [newMeetingId, member.user_id]);
-            }
+    upload(req, res, async (err) => {
+        if (err) {
+            console.error('Upload Error:', err);
+            return res.status(500).json({ error: 'Error procesando el archivo' });
         }
 
-        return res.status(201).json({ message: 'Meeting created successfully', id: newMeetingId });
-    } catch (error) {
-        console.error('API Error - POST /api/meetings:', error);
-        return res.status(500).json({ error: 'Internal Server Error' });
-    }
+        const { committeeId, date, time, modality, location, type } = req.body;
+        const file = (req as any).file;
+
+        if (!committeeId || !date || !time || !type) {
+            return res.status(400).json({ error: 'Missing required fields' });
+        }
+
+        try {
+            const { rows: insertedMeeting } = await query(`
+                INSERT INTO corporate_governance.meetings (committee_id, type, date, time, modality, location, status)
+                VALUES ($1, $2, $3, $4, $5, $6, 'SCHEDULED')
+                RETURNING id
+            `, [committeeId, type === 'Ordinaria' ? 'ORDINARY' : 'EXTRAORDINARY', date, time, modality || 'PRESENCIAL', location || null]);
+
+            const newMeetingId = insertedMeeting[0].id;
+
+            // Upload to Blob if file exists
+            if (file && modality === 'VIRTUAL') {
+                const originalName = file.originalname;
+                if (originalName.endsWith('.ics')) {
+                    const blobPath = `adjuntos-reuniones/${newMeetingId}/${originalName}`;
+                    const blob = await put(blobPath, file.buffer, {
+                        access: 'public',
+                        token: process.env.BLOB_READ_WRITE_TOKEN
+                    });
+
+                    await query(`
+                        UPDATE corporate_governance.meetings 
+                        SET ics_file_url = $1 
+                        WHERE id = $2
+                    `, [blob.url, newMeetingId]);
+                }
+            }
+
+            const { rows: members } = await query(`
+                SELECT user_id FROM corporate_governance.committee_members
+                WHERE committee_id = $1
+            `, [committeeId]);
+
+            if (members.length > 0) {
+                const insertParticipants = `
+                    INSERT INTO corporate_governance.meeting_participants (meeting_id, user_id, status)
+                    VALUES ($1, $2, 'PRESENT')
+                `;
+                for (const member of members) {
+                    await query(insertParticipants, [newMeetingId, member.user_id]);
+                }
+            }
+
+            return res.status(201).json({ message: 'Meeting created successfully', id: newMeetingId });
+        } catch (error) {
+            console.error('API Error - POST /api/meetings:', error);
+            return res.status(500).json({ error: 'Internal Server Error' });
+        }
+    });
 }

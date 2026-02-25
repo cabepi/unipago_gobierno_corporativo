@@ -50,13 +50,14 @@ export default async function handler(req: Request, res: Response) {
 
         // Fetch Meetings for this committee
         const { rows: meetingRows } = await query(`
-            SELECT 
-                m.id, 
-                m.type, 
-                m.date, 
-                m.time, 
+            SELECT
+                m.id,
+                m.type,
+                m.date,
+                m.time,
                 m.modality,
                 m.location,
+                m.ics_file_url as "icsFileUrl",
                 m.status,
                 c.name as "committeeName",
                 json_build_object(
@@ -113,6 +114,7 @@ export default async function handler(req: Request, res: Response) {
                 time: mr.time.substring(0, 5),
                 modality: mr.modality,
                 location: mr.location,
+                icsFileUrl: mr.icsFileUrl,
                 status: statusMap[mr.status] || 'PENDIENTE',
                 secretary: mr.secretary ? {
                     name: mr.secretary.name,

@@ -58,15 +58,22 @@ export function CommitteeDetail() {
         fetchCommitteeDetail();
     }, [id]);
 
-    const handleCreateMeeting = async (data: { date: string; time: string; location: string; type: string }) => {
+    const handleCreateMeeting = async (data: { date: string; time: string; location: string; type: string; modality: string; icsFile: File | null }) => {
         try {
+            const formData = new FormData();
+            formData.append('committeeId', id as string);
+            formData.append('date', data.date);
+            formData.append('time', data.time);
+            formData.append('location', data.location);
+            formData.append('type', data.type);
+            formData.append('modality', data.modality);
+            if (data.icsFile) {
+                formData.append('icsFile', data.icsFile);
+            }
+
             const res = await fetch('/api/meetings', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    committeeId: id,
-                    ...data
-                })
+                body: formData
             });
 
             if (res.ok) {
@@ -168,6 +175,7 @@ export function CommitteeDetail() {
                                             time={meeting.time}
                                             modality={meeting.modality as any}
                                             location={meeting.location}
+                                            icsFileUrl={meeting.icsFileUrl}
                                             secretaryName={meeting.secretary?.name || 'Por Asignar'}
                                             secretaryRole="Secretario"
                                             secretaryAvatar={meeting.secretary?.avatarUrl || ''}

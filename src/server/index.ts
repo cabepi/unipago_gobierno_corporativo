@@ -11,6 +11,7 @@ import meetingsHandler from '../../api/meetings';
 import meetingHandler from '../../api/meeting';
 import meetingCommentsHandler from '../../api/meeting_comments';
 import signaturesHandler from '../../api/signatures';
+import documentsHandler from '../../api/documents';
 
 dotenv.config();
 
@@ -28,10 +29,11 @@ app.all('/api/proxy', proxyHandler);
 app.get('/api/users', usersHandler);
 app.all('/api/committees', committeesHandler);
 app.get('/api/committee', singleCommitteeHandler);
-app.get('/api/meetings', meetingsHandler);
+app.all('/api/meetings', meetingsHandler);
 app.get('/api/meeting', meetingHandler); // uses ?id=...
 app.post('/api/meeting/comments', meetingCommentsHandler);
 app.post('/api/signatures', signaturesHandler);
+app.post('/api/documents/upload', documentsHandler);
 
 // Simple JWT Verification Middleware
 export const authenticateToken = (req: express.Request, res: express.Response, next: express.NextFunction) => {

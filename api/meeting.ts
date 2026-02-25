@@ -4,7 +4,7 @@ import { query } from '../src/data/db';
 export default async function handler(req: Request, res: Response) {
     if (req.method !== 'GET') return res.status(405).json({ error: 'Method Not Allowed' });
 
-    const { id } = req.query;
+    const { id, userId } = req.query;
     if (!id || typeof id !== 'string') return res.status(400).json({ error: 'Meeting ID required' });
 
     try {
@@ -16,6 +16,7 @@ export default async function handler(req: Request, res: Response) {
                 m.date, 
                 m.time, 
                 m.location,
+                m.ics_file_url as "icsFileUrl",
                 m.status,
                 c.name as "committeeName",
                 json_build_object(
@@ -76,6 +77,19 @@ export default async function handler(req: Request, res: Response) {
             ORDER BY mc.created_at ASC
         `, [id]);
 
+        let currentUserRole = null;
+        if (userId && typeof userId === 'string') {
+            const { rows: roleRows } = await query(`
+                SELECT cm.role_code 
+                FROM corporate_governance.committee_members cm
+                JOIN corporate_governance.meetings m ON m.committee_id = cm.committee_id
+                WHERE m.id = $1 AND cm.user_id = $2
+            `, [id, userId]);
+            if (roleRows.length > 0) {
+                currentUserRole = roleRows[0].role_code;
+            }
+        }
+
         const statusMap: any = {
             'SCHEDULED': 'PENDIENTE',
             'AGENDA_SENT': 'PENDIENTE',
@@ -99,6 +113,7 @@ export default async function handler(req: Request, res: Response) {
             date: new Date(r.date).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' }),
             time: r.time.substring(0, 5),
             location: r.location,
+            icsFileUrl: r.icsFileUrl,
             status: statusMap[r.status] || 'PENDIENTE',
             secretary: {
                 name: r.secretary.name,
@@ -126,7 +141,8 @@ export default async function handler(req: Request, res: Response) {
                 category: d.category,
                 url: d.url,
                 date: new Date(d.uploadDate).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
-            }))
+            })),
+            currentUserRole
         };
 
         return res.status(200).json(result);

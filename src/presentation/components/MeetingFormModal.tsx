@@ -4,7 +4,7 @@ import { X } from 'lucide-react';
 interface MeetingFormModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSubmit: (data: { date: string; time: string; modality: 'PRESENCIAL' | 'VIRTUAL'; location: string; type: 'Ordinaria' | 'Extraordinaria' }) => void;
+    onSubmit: (data: { date: string; time: string; modality: 'PRESENCIAL' | 'VIRTUAL'; location: string; type: 'Ordinaria' | 'Extraordinaria', icsFile: File | null }) => void;
 }
 
 export function MeetingFormModal({ isOpen, onClose, onSubmit }: MeetingFormModalProps) {
@@ -13,18 +13,20 @@ export function MeetingFormModal({ isOpen, onClose, onSubmit }: MeetingFormModal
     const [modality, setModality] = useState<'PRESENCIAL' | 'VIRTUAL'>('PRESENCIAL');
     const [location, setLocation] = useState('');
     const [type, setType] = useState<'Ordinaria' | 'Extraordinaria'>('Ordinaria');
+    const [icsFile, setIcsFile] = useState<File | null>(null);
 
     if (!isOpen) return null;
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSubmit({ date, time, modality, location, type });
+        onSubmit({ date, time, modality, location, type, icsFile });
         // Reset form
         setDate('');
         setTime('');
         setLocation('');
         setModality('PRESENCIAL');
         setType('Ordinaria');
+        setIcsFile(null);
     };
 
     return (
@@ -98,17 +100,32 @@ export function MeetingFormModal({ isOpen, onClose, onSubmit }: MeetingFormModal
                                 </div>
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">
-                                    {modality === 'PRESENCIAL' ? 'Ubicación Física (Opcional)' : 'Enlace de Teams / Archivo .ics (Opcional)'}
-                                </label>
-                                <input
-                                    type="text"
-                                    placeholder={modality === 'PRESENCIAL' ? "Ej. Sala de Juntas B" : "Ej. https://teams.microsoft.com/l/meetup-join/..."}
-                                    value={location}
-                                    onChange={(e) => setLocation(e.target.value)}
-                                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-colors text-slate-800"
-                                />
+                            <div className={modality === 'VIRTUAL' ? "grid grid-cols-2 gap-4" : ""}>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                                        {modality === 'PRESENCIAL' ? 'Ubicación Física (Opcional)' : 'Enlace de Teams (Opcional)'}
+                                    </label>
+                                    <input
+                                        type="text"
+                                        placeholder={modality === 'PRESENCIAL' ? "Ej. Sala de Juntas B" : "Ej. https://teams.microsoft.com/l/meetup-join/..."}
+                                        value={location}
+                                        onChange={(e) => setLocation(e.target.value)}
+                                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-colors text-slate-800"
+                                    />
+                                </div>
+                                {modality === 'VIRTUAL' && (
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                                            Subir Archivo .ics (Opcional)
+                                        </label>
+                                        <input
+                                            type="file"
+                                            accept=".ics"
+                                            onChange={(e) => setIcsFile(e.target.files?.[0] || null)}
+                                            className="w-full px-4 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-colors text-slate-500 file:mr-4 file:py-1 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer"
+                                        />
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </form>
