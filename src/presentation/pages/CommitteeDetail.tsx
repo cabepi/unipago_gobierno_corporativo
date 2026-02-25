@@ -167,6 +167,8 @@ export function CommitteeDetail() {
                                             type={meeting.type as any}
                                             date={meeting.date}
                                             time={meeting.time}
+                                            modality={meeting.modality as any}
+                                            location={meeting.location}
                                             secretaryName={meeting.secretary?.name || 'Por Asignar'}
                                             secretaryRole="Secretario"
                                             secretaryAvatar={meeting.secretary?.avatarUrl || ''}

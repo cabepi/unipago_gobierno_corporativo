@@ -11,7 +11,8 @@ export interface MeetingData {
     type: 'Ordinaria' | 'Extraordinaria' | string;
     date: string;
     time: string;
-    location: string;
+    modality?: 'PRESENCIAL' | 'VIRTUAL';
+    location?: string;
     secretary: {
         name: string;
         avatarUrl: string;

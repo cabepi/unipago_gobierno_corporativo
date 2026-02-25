@@ -55,6 +55,7 @@ export default async function handler(req: Request, res: Response) {
                 m.type, 
                 m.date, 
                 m.time, 
+                m.modality,
                 m.location,
                 m.status,
                 c.name as "committeeName",
@@ -110,6 +111,7 @@ export default async function handler(req: Request, res: Response) {
                 type: typeStr,
                 date: new Date(mr.date).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' }),
                 time: mr.time.substring(0, 5),
+                modality: mr.modality,
                 location: mr.location,
                 status: statusMap[mr.status] || 'PENDIENTE',
                 secretary: mr.secretary ? {

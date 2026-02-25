@@ -4,12 +4,13 @@ import { X } from 'lucide-react';
 interface MeetingFormModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSubmit: (data: { date: string; time: string; location: string; type: 'Ordinaria' | 'Extraordinaria' }) => void;
+    onSubmit: (data: { date: string; time: string; modality: 'PRESENCIAL' | 'VIRTUAL'; location: string; type: 'Ordinaria' | 'Extraordinaria' }) => void;
 }
 
 export function MeetingFormModal({ isOpen, onClose, onSubmit }: MeetingFormModalProps) {
     const [date, setDate] = useState('');
     const [time, setTime] = useState('');
+    const [modality, setModality] = useState<'PRESENCIAL' | 'VIRTUAL'>('PRESENCIAL');
     const [location, setLocation] = useState('');
     const [type, setType] = useState<'Ordinaria' | 'Extraordinaria'>('Ordinaria');
 
@@ -17,11 +18,12 @@ export function MeetingFormModal({ isOpen, onClose, onSubmit }: MeetingFormModal
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSubmit({ date, time, location, type });
+        onSubmit({ date, time, modality, location, type });
         // Reset form
         setDate('');
         setTime('');
         setLocation('');
+        setModality('PRESENCIAL');
         setType('Ordinaria');
     };
 
@@ -38,19 +40,35 @@ export function MeetingFormModal({ isOpen, onClose, onSubmit }: MeetingFormModal
                 <div className="p-6 overflow-y-auto">
                     <form id="meeting-form" onSubmit={handleSubmit} className="space-y-6">
                         <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">
-                                    Tipo de Reunión
-                                </label>
-                                <select
-                                    required
-                                    value={type}
-                                    onChange={(e) => setType(e.target.value as 'Ordinaria' | 'Extraordinaria')}
-                                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-colors bg-white text-slate-800"
-                                >
-                                    <option value="Ordinaria">Ordinaria</option>
-                                    <option value="Extraordinaria">Extraordinaria</option>
-                                </select>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                                        Tipo de Reunión
+                                    </label>
+                                    <select
+                                        required
+                                        value={type}
+                                        onChange={(e) => setType(e.target.value as 'Ordinaria' | 'Extraordinaria')}
+                                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-colors bg-white text-slate-800"
+                                    >
+                                        <option value="Ordinaria">Ordinaria</option>
+                                        <option value="Extraordinaria">Extraordinaria</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                                        Modalidad
+                                    </label>
+                                    <select
+                                        required
+                                        value={modality}
+                                        onChange={(e) => setModality(e.target.value as 'PRESENCIAL' | 'VIRTUAL')}
+                                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-colors bg-white text-slate-800"
+                                    >
+                                        <option value="PRESENCIAL">Presencial</option>
+                                        <option value="VIRTUAL">Virtual</option>
+                                    </select>
+                                </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
@@ -82,12 +100,11 @@ export function MeetingFormModal({ isOpen, onClose, onSubmit }: MeetingFormModal
 
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">
-                                    Lugar / Enlace (Teams, Zoom, etc.)
+                                    {modality === 'PRESENCIAL' ? 'Ubicación Física (Opcional)' : 'Enlace de Teams / Archivo .ics (Opcional)'}
                                 </label>
                                 <input
                                     type="text"
-                                    required
-                                    placeholder="Ej. Sala de Juntas B o enlace web"
+                                    placeholder={modality === 'PRESENCIAL' ? "Ej. Sala de Juntas B" : "Ej. https://teams.microsoft.com/l/meetup-join/..."}
                                     value={location}
                                     onChange={(e) => setLocation(e.target.value)}
                                     className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-colors text-slate-800"

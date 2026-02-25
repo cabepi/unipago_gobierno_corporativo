@@ -15,6 +15,7 @@ export default async function handler(req: Request, res: Response) {
                 m.type, 
                 m.date, 
                 m.time, 
+                m.modality,
                 m.location,
                 m.status,
                 c.name as "committeeName",
@@ -73,6 +74,7 @@ export default async function handler(req: Request, res: Response) {
                 type: typeStr,
                 date: new Date(r.date).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' }),
                 time: r.time.substring(0, 5), // '10:00:00' -> '10:00'
+                modality: r.modality,
                 location: r.location,
                 status: statusMap[r.status] || 'PENDIENTE',
                 secretary: r.secretary ? {
@@ -101,18 +103,18 @@ export default async function handler(req: Request, res: Response) {
 }
 
 async function handlePost(req: Request, res: Response) {
-    const { committeeId, date, time, location, type } = req.body;
+    const { committeeId, date, time, modality, location, type } = req.body;
 
-    if (!committeeId || !date || !time || !location || !type) {
+    if (!committeeId || !date || !time || !type) {
         return res.status(400).json({ error: 'Missing required fields' });
     }
 
     try {
         const { rows: insertedMeeting } = await query(`
-            INSERT INTO corporate_governance.meetings (committee_id, type, date, time, location, status)
-            VALUES ($1, $2, $3, $4, $5, 'SCHEDULED')
+            INSERT INTO corporate_governance.meetings (committee_id, type, date, time, modality, location, status)
+            VALUES ($1, $2, $3, $4, $5, $6, 'SCHEDULED')
             RETURNING id
-        `, [committeeId, type === 'Ordinaria' ? 'ORDINARY' : 'EXTRAORDINARY', date, time, location]);
+        `, [committeeId, type === 'Ordinaria' ? 'ORDINARY' : 'EXTRAORDINARY', date, time, modality || 'PRESENCIAL', location || null]);
 
         const newMeetingId = insertedMeeting[0].id;
 
