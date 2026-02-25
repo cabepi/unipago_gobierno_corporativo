@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Users, Calendar, Plus } from 'lucide-react';
 import { Card } from '../components/Card';
 import { Badge } from '../components/Badge';
-import { AvatarGroup } from '../components/AvatarGroup';
 import { MeetingRow } from '../components/MeetingRow';
 import { Tabs } from '../components/Tabs';
 import { MeetingFormModal } from '../components/MeetingFormModal';
