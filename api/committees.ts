@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import pool, { query } from '../src/data/db';
+import pool, { query } from '../src/data/db.js';
 
 export default async function handler(req: Request, res: Response) {
     if (req.method === 'GET') {

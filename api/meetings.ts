@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { query } from '../src/data/db';
+import { query } from '../src/data/db.js';
 import multer from 'multer';
 import { put } from '@vercel/blob';
 

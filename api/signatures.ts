@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import pool from '../src/data/db';
+import pool from '../src/data/db.js';
 
 export default async function handler(req: Request, res: Response) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });

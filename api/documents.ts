@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
 import multer from 'multer';
 import { put } from '@vercel/blob';
-import pool from '../src/data/db';
+import pool from '../src/data/db.js';
 
 export const config = {
     api: {
