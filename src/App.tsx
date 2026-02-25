@@ -4,22 +4,62 @@ import Home from './presentation/pages/Home';
 import { Committees } from './presentation/pages/Committees';
 import { AuthProvider } from './presentation/context/AuthContext';
 import { Layout } from './presentation/components/Layout';
+import { useAuth } from './presentation/hooks/useAuth';
+import Login from './presentation/pages/Login';
+import type { ReactNode } from 'react';
+
+/** Route-level permission guard: checks if the user has canRead for the given menuKey */
+const PermissionGate = ({ menuKey, children }: { menuKey: string; children: ReactNode }) => {
+  const { user } = useAuth();
+  const permissions = user?.permissions || [];
+  const hasAccess = permissions.some(p => p.menuKey === menuKey && p.canRead);
+
+  if (!hasAccess) {
+    return <Navigate to="/home" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+const ProtectedRoutes = () => {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return null;
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return (
+    <Layout>
+      <Routes>
+        <Route path="/home" element={<Home />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/committees" element={
+          <PermissionGate menuKey="/committees">
+            <Committees />
+          </PermissionGate>
+        } />
+        <Route path="*" element={<Navigate to="/home" replace />} />
+      </Routes>
+    </Layout>
+  );
+};
 
 function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <Layout>
-          <Routes>
-            <Route path="/home" element={<Home />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/committees" element={<Committees />} />
-            <Route path="*" element={<Navigate to="/home" replace />} />
-          </Routes>
-        </Layout>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/*" element={<ProtectedRoutes />} />
+        </Routes>
       </BrowserRouter>
     </AuthProvider>
   );
 }
 
 export default App;
+

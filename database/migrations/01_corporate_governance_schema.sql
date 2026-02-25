@@ -101,6 +101,16 @@ CREATE TABLE corporate_governance.signatures (
     UNIQUE (document_id, user_id)
 );
 
+-- Menu Permissions Configuration Table
+CREATE TABLE corporate_governance.menu_permissions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    role_code VARCHAR(50) NOT NULL REFERENCES corporate_governance.roles(code) ON DELETE CASCADE,
+    menu_key VARCHAR(100) NOT NULL,
+    can_read BOOLEAN NOT NULL DEFAULT FALSE,
+    can_write BOOLEAN NOT NULL DEFAULT FALSE,
+    UNIQUE (role_code, menu_key)
+);
+
 -- Dummy Data Insertion
 
 -- 1A. Roles
@@ -188,4 +198,17 @@ INSERT INTO corporate_governance.documents (id, meeting_id, name, type, category
 ('d0000000-0000-0000-0000-000000000004', 'c0000000-0000-0000-0000-000000000002', 'Tasacion_Activos.docx', 'DOCX', 'SUPPORT_DOC', 'https://ejemplo.com/tasacion'),
 -- Past meeting 3 documents
 ('d0000000-0000-0000-0000-000000000005', 'c0000000-0000-0000-0000-000000000003', 'Presupuesto_Aprobado_2024.pdf', 'PDF', 'ACTA', 'https://ejemplo.com/acta_presupuesto')
+ON CONFLICT DO NOTHING;
+
+-- 9. Menu Permissions
+INSERT INTO corporate_governance.menu_permissions (role_code, menu_key, can_read, can_write) VALUES
+-- All roles: Home (read + write)
+('SEC_GEN', '/home', TRUE, TRUE),
+('DIR_GEN', '/home', TRUE, TRUE),
+('ANA_RIESGOS', '/home', TRUE, TRUE),
+('ACCIONISTA', '/home', TRUE, TRUE),
+('CONSULTA_EXT', '/home', TRUE, TRUE),
+('GER_FIN', '/home', TRUE, TRUE),
+-- Only SEC_GEN: Committees (read + write)
+('SEC_GEN', '/committees', TRUE, TRUE)
 ON CONFLICT DO NOTHING;

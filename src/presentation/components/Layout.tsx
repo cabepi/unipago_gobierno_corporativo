@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
+import { useMemo } from 'react';
 import { LayoutDashboard, LogOut, Home, Briefcase } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 
 const NAV_ITEMS = [
     { to: '/home', label: 'Home', icon: Home },
@@ -10,6 +11,19 @@ const NAV_ITEMS = [
 
 export const Layout = ({ children }: { children: ReactNode }) => {
     const { user, logout } = useAuth();
+    const navigate = useNavigate();
+
+    const handleLogout = () => {
+        logout();
+        navigate('/login', { replace: true });
+    };
+
+    const allowedNavItems = useMemo(() => {
+        const permissions = user?.permissions || [];
+        return NAV_ITEMS.filter(item =>
+            permissions.some(p => p.menuKey === item.to && p.canRead)
+        );
+    }, [user?.permissions]);
 
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
@@ -23,7 +37,7 @@ export const Layout = ({ children }: { children: ReactNode }) => {
                     <div className="flex items-center gap-4">
                         <span className="text-sm text-slate-600 font-medium">Hola, {user.name} ({user.role})</span>
                         <button
-                            onClick={logout}
+                            onClick={handleLogout}
                             className="flex items-center gap-1 text-sm text-red-600 hover:text-red-800 transition-colors"
                         >
                             <LogOut className="w-4 h-4" /> Salir
@@ -38,7 +52,7 @@ export const Layout = ({ children }: { children: ReactNode }) => {
             <div className="flex flex-1">
                 {/* Sidebar */}
                 <aside className="w-56 bg-white border-r border-slate-100 shadow-sm flex flex-col py-6 gap-1">
-                    {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
+                    {allowedNavItems.map(({ to, label, icon: Icon }) => (
                         <NavLink
                             key={to}
                             to={to}

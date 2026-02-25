@@ -5,16 +5,6 @@ import { Card } from '../components/Card';
 import { CommitteeFormModal } from '../components/CommitteeFormModal';
 import { AvatarGroup } from '../components/AvatarGroup';
 
-// Mock Users for Committee Roles
-export const MOCK_USERS = [
-    { id: 'u1', name: 'Laura Gómez', role: 'Secretaria General', avatarUrl: 'https://i.pravatar.cc/150?u=laura', isExternal: false },
-    { id: 'u2', name: 'Carlos Díaz', role: 'Director General', avatarUrl: 'https://i.pravatar.cc/150?u=carlos', isExternal: false },
-    { id: 'u3', name: 'Ana Martínez', role: 'Analista de Riesgos', avatarUrl: 'https://i.pravatar.cc/150?u=ana', isExternal: false },
-    { id: 'u4', name: 'Roberto Torres', role: 'Accionista Principal', avatarUrl: 'https://i.pravatar.cc/150?u=roberto', isExternal: true },
-    { id: 'u5', name: 'Elena Ramírez', role: 'Consultora Externa', avatarUrl: 'https://i.pravatar.cc/150?u=elena', isExternal: true },
-    { id: 'u6', name: 'Miguel Vargas', role: 'Gerente Financiero', avatarUrl: 'https://i.pravatar.cc/150?u=miguel', isExternal: false },
-];
-
 export interface CommitteeRole {
     userId: string;
     role: 'Secretario' | 'Soporte' | 'Miembro';
