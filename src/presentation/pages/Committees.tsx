@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { PlusCircle, Search, Users, ExternalLink } from 'lucide-react';
 import { Badge } from '../components/Badge';
 import { Card } from '../components/Card';
@@ -22,6 +23,7 @@ export interface Committee {
 
 
 export function Committees() {
+    const navigate = useNavigate();
     const [committees, setCommittees] = useState<Committee[]>([]);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -120,7 +122,11 @@ export function Committees() {
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {filteredCommittees.map(committee => (
-                                <Card key={committee.id} className="flex flex-col h-full group hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden">
+                                <Card
+                                    key={committee.id}
+                                    onClick={() => navigate(`/committees/${committee.id}`)}
+                                    className="flex flex-col h-full group hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden"
+                                >
                                     {/* Color Indicator */}
                                     <div className={`absolute left-0 top-0 bottom-0 w-1 ${committee.type === 'Interno' ? 'bg-indigo-500' : 'bg-orange-400'}`} />
 
@@ -155,13 +161,13 @@ export function Committees() {
                     )}
                 </div>
 
-            </main>
+            </main >
 
             <CommitteeFormModal
                 isOpen={isCreateModalOpen}
                 onClose={() => setIsCreateModalOpen(false)}
                 onSubmit={handleCreateCommittee}
             />
-        </div>
+        </div >
     );
 }

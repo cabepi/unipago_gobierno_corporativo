@@ -20,12 +20,13 @@ export default async function handler(req: Request, res: Response) {
                 c.name as "committeeName",
                 json_build_object(
                     'name', u.name,
-                    'role', cm.role,
+                    'role', cr.name,
                     'avatarUrl', u.avatar_url
                 ) as secretary
             FROM corporate_governance.meetings m
             JOIN corporate_governance.committees c ON m.committee_id = c.id
-            LEFT JOIN corporate_governance.committee_members cm ON c.id = cm.committee_id AND cm.role = 'SECRETARY'
+            LEFT JOIN corporate_governance.committee_members cm ON c.id = cm.committee_id AND cm.role_code = 'SECRETARY'
+            LEFT JOIN corporate_governance.committee_roles cr ON cm.role_code = cr.code
             LEFT JOIN corporate_governance.users u ON cm.user_id = u.id
             WHERE m.id = $1
         `, [id]);

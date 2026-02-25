@@ -2,14 +2,54 @@ import type { Request, Response } from 'express';
 import { query } from '../src/data/db';
 
 export default async function handler(req: Request, res: Response) {
-    if (req.method === 'POST') {
-        return handlePost(req, res);
-    }
-
     if (req.method !== 'GET') return res.status(405).json({ error: 'Method Not Allowed' });
 
+    const { id } = req.query;
+    if (!id || typeof id !== 'string') return res.status(400).json({ error: 'Committee ID required' });
+
     try {
-        const { rows } = await query(`
+        // Fetch Committee Details & Members
+        const { rows: committeeRows } = await query(`
+            SELECT 
+                c.id, c.name, c.type, c.description, c.created_at as "createdAt",
+                COALESCE(
+                    json_agg(
+                        json_build_object(
+                            'userId', cm.user_id,
+                            'roleCode', cm.role_code,
+                            'roleName', cr.name,
+                            'userName', u.name,
+                            'userAvatar', u.avatar_url,
+                            'isExternal', u.is_external
+                        )
+                    ) FILTER (WHERE cm.user_id IS NOT NULL), 
+                '[]') as members
+            FROM corporate_governance.committees c
+            LEFT JOIN corporate_governance.committee_members cm ON c.id = cm.committee_id
+            LEFT JOIN corporate_governance.users u ON cm.user_id = u.id
+            LEFT JOIN corporate_governance.committee_roles cr ON cm.role_code = cr.code
+            WHERE c.id = $1
+            GROUP BY c.id
+        `, [id]);
+
+        if (committeeRows.length === 0) return res.status(404).json({ error: 'Committee not found' });
+
+        const r = committeeRows[0];
+        const formattedCommittee = {
+            id: r.id,
+            name: r.name,
+            type: r.type === 'INTERNAL' ? 'Interno' : 'Externo',
+            description: r.description,
+            createdAt: r.createdAt,
+            members: r.members.map((m: any) => ({
+                userId: m.userId,
+                role: m.roleName,
+                user: { name: m.userName, avatarUrl: m.userAvatar, isExternal: m.isExternal }
+            }))
+        };
+
+        // Fetch Meetings for this committee
+        const { rows: meetingRows } = await query(`
             SELECT 
                 m.id, 
                 m.type, 
@@ -41,18 +81,15 @@ export default async function handler(req: Request, res: Response) {
             LEFT JOIN corporate_governance.committee_members cm ON c.id = cm.committee_id AND cm.role_code = 'SECRETARY'
             LEFT JOIN corporate_governance.committee_roles cr ON cm.role_code = cr.code
             LEFT JOIN corporate_governance.users u ON cm.user_id = u.id
+            WHERE m.committee_id = $1
             ORDER BY m.date ASC, m.time ASC
-        `);
+        `, [id]);
 
-        // Format to match frontend MeetingData interface
-        const formatted = rows.map(r => {
-            // Determine meeting type string
-            const typeStr = r.type === 'ORDINARY' ? 'Reunión Ordinaria' : 'Reunión Extraordinaria';
+        // Format Meetings
+        const formattedMeetings = meetingRows.map(mr => {
+            const typeStr = mr.type === 'ORDINARY' ? 'Reunión Ordinaria' : 'Reunión Extraordinaria';
+            const rawParticipants = mr.participants || [];
 
-            // Format participants with fallback for empty
-            const rawParticipants = r.participants || [];
-
-            // Map statuses
             const statusMap: any = {
                 'SCHEDULED': 'PENDIENTE',
                 'AGENDA_SENT': 'PENDIENTE',
@@ -69,16 +106,16 @@ export default async function handler(req: Request, res: Response) {
             };
 
             return {
-                id: r.id,
+                id: mr.id,
                 type: typeStr,
-                date: new Date(r.date).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' }),
-                time: r.time.substring(0, 5), // '10:00:00' -> '10:00'
-                location: r.location,
-                status: statusMap[r.status] || 'PENDIENTE',
-                secretary: r.secretary ? {
-                    name: r.secretary.name,
+                date: new Date(mr.date).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' }),
+                time: mr.time.substring(0, 5),
+                location: mr.location,
+                status: statusMap[mr.status] || 'PENDIENTE',
+                secretary: mr.secretary ? {
+                    name: mr.secretary.name,
                     role: 'Secretario del Comité',
-                    avatarUrl: r.secretary.avatarUrl
+                    avatarUrl: mr.secretary.avatarUrl
                 } : null,
                 participants: {
                     list: rawParticipants.map((p: any) => ({
@@ -86,54 +123,19 @@ export default async function handler(req: Request, res: Response) {
                         name: p.name,
                         status: participantStatusMap[p.status]
                     })),
-                    // Only show overflow label if more than 3
                     overflowLabel: rawParticipants.length > 3 ? `+${rawParticipants.length - 3}` : undefined,
                     overflowColorClass: 'bg-emerald-100 text-emerald-700 border-white'
                 }
             };
         });
 
-        return res.status(200).json(formatted);
+        return res.status(200).json({
+            ...formattedCommittee,
+            meetings: formattedMeetings
+        });
+
     } catch (error) {
-        console.error('API Error - GET /api/meetings:', error);
-        return res.status(500).json({ error: 'Internal Server Error' });
-    }
-}
-
-async function handlePost(req: Request, res: Response) {
-    const { committeeId, date, time, location, type } = req.body;
-
-    if (!committeeId || !date || !time || !location || !type) {
-        return res.status(400).json({ error: 'Missing required fields' });
-    }
-
-    try {
-        const { rows: insertedMeeting } = await query(`
-            INSERT INTO corporate_governance.meetings (committee_id, type, date, time, location, status)
-            VALUES ($1, $2, $3, $4, $5, 'SCHEDULED')
-            RETURNING id
-        `, [committeeId, type === 'Ordinaria' ? 'ORDINARY' : 'EXTRAORDINARY', date, time, location]);
-
-        const newMeetingId = insertedMeeting[0].id;
-
-        const { rows: members } = await query(`
-            SELECT user_id FROM corporate_governance.committee_members
-            WHERE committee_id = $1
-        `, [committeeId]);
-
-        if (members.length > 0) {
-            const insertParticipants = `
-                INSERT INTO corporate_governance.meeting_participants (meeting_id, user_id, status)
-                VALUES ($1, $2, 'PRESENT')
-            `;
-            for (const member of members) {
-                await query(insertParticipants, [newMeetingId, member.user_id]);
-            }
-        }
-
-        return res.status(201).json({ message: 'Meeting created successfully', id: newMeetingId });
-    } catch (error) {
-        console.error('API Error - POST /api/meetings:', error);
+        console.error('API Error - GET /api/committee:', error);
         return res.status(500).json({ error: 'Internal Server Error' });
     }
 }

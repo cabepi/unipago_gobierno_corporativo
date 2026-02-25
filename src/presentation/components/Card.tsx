@@ -20,7 +20,10 @@ export function Card({ children, variant = 'default', className = '', onClick }:
     }
 
     return (
-        <div className={`bg-white border border-gray-100 rounded-2xl p-6 shadow-sm ${className}`}>
+        <div
+            onClick={onClick}
+            className={`bg-white border border-gray-100 rounded-2xl p-6 shadow-sm ${className}`}
+        >
             {children}
         </div>
     );

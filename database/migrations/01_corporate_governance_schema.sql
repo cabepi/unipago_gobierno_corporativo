@@ -23,6 +23,13 @@ CREATE TABLE corporate_governance.users (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Committee Roles Catalog Table
+CREATE TABLE corporate_governance.committee_roles (
+    code VARCHAR(50) PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    description TEXT
+);
+
 -- Committees Table
 CREATE TABLE corporate_governance.committees (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -36,7 +43,7 @@ CREATE TABLE corporate_governance.committees (
 CREATE TABLE corporate_governance.committee_members (
     committee_id UUID REFERENCES corporate_governance.committees(id) ON DELETE CASCADE,
     user_id UUID REFERENCES corporate_governance.users(id) ON DELETE CASCADE,
-    role VARCHAR(20) NOT NULL DEFAULT 'MEMBER' CHECK (role IN ('SECRETARY', 'SUPPORT', 'MEMBER')),
+    role_code VARCHAR(50) NOT NULL DEFAULT 'MEMBER' REFERENCES corporate_governance.committee_roles(code),
     assigned_at TIMESTAMP WITH TIME ZONE DEFAULT (now() AT TIME ZONE 'America/Santo_Domingo'),
     PRIMARY KEY (committee_id, user_id)
 );
@@ -113,7 +120,7 @@ CREATE TABLE corporate_governance.menu_permissions (
 
 -- Dummy Data Insertion
 
--- 1A. Roles
+-- 1A. Roles (Global/System)
 INSERT INTO corporate_governance.roles (code, name) VALUES
 ('SEC_GEN', 'Secretaria General'),
 ('DIR_GEN', 'Director General'),
@@ -121,6 +128,13 @@ INSERT INTO corporate_governance.roles (code, name) VALUES
 ('ACCIONISTA', 'Accionista Principal'),
 ('CONSULTA_EXT', 'Consultora Externa'),
 ('GER_FIN', 'Gerente Financiero')
+ON CONFLICT DO NOTHING;
+
+-- 1B. Committee Roles (Per-Committee)
+INSERT INTO corporate_governance.committee_roles (code, name, description) VALUES
+('SECRETARY', 'Secretario', 'Dentro del comité, es responsable de convocar reuniones, gestionar agendas, redactar actas y administrar la operación del comité.'),
+('SUPPORT', 'Soporte', 'Dentro del comité, brinda apoyo operativo, puede preparar documentos y asistir al secretario en sus funciones.'),
+('MEMBER', 'Miembro', 'Dentro del comité, participa en las reuniones, delibera y vota en las decisiones correspondientes.')
 ON CONFLICT DO NOTHING;
 
 -- 1B. Users
@@ -140,7 +154,7 @@ INSERT INTO corporate_governance.committees (id, name, type, description) VALUES
 ON CONFLICT DO NOTHING;
 
 -- 3. Committee Members
-INSERT INTO corporate_governance.committee_members (committee_id, user_id, role) VALUES
+INSERT INTO corporate_governance.committee_members (committee_id, user_id, role_code) VALUES
 ('b0000000-0000-0000-0000-000000000001', 'ea912a76-2f08-41df-a5e7-2b0e77d33d73', 'SECRETARY'),
 ('b0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000002', 'MEMBER'),
 ('b0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000006', 'MEMBER'),

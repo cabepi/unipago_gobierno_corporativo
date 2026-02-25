@@ -12,7 +12,8 @@ export default async function handler(req: Request, res: Response) {
                         json_agg(
                             json_build_object(
                                 'userId', cm.user_id,
-                                'role', cm.role,
+                                'roleCode', cm.role_code,
+                                'roleName', cr.name,
                                 'userName', u.name,
                                 'userAvatar', u.avatar_url,
                                 'isExternal', u.is_external
@@ -22,6 +23,7 @@ export default async function handler(req: Request, res: Response) {
                 FROM corporate_governance.committees c
                 LEFT JOIN corporate_governance.committee_members cm ON c.id = cm.committee_id
                 LEFT JOIN corporate_governance.users u ON cm.user_id = u.id
+                LEFT JOIN corporate_governance.committee_roles cr ON cm.role_code = cr.code
                 GROUP BY c.id
                 ORDER BY c.created_at DESC
             `);
@@ -35,7 +37,7 @@ export default async function handler(req: Request, res: Response) {
                 createdAt: r.createdAt,
                 members: r.members.map((m: any) => ({
                     userId: m.userId,
-                    role: m.role === 'SECRETARY' ? 'Secretario' : m.role === 'SUPPORT' ? 'Soporte' : 'Miembro',
+                    role: m.roleName,
                     // Hydrate user info locally
                     user: { name: m.userName, avatarUrl: m.userAvatar, isExternal: m.isExternal }
                 }))
@@ -70,7 +72,7 @@ export default async function handler(req: Request, res: Response) {
 
             if (members.length > 0) {
                 const insertMembers = `
-                    INSERT INTO corporate_governance.committee_members (committee_id, user_id, role)
+                    INSERT INTO corporate_governance.committee_members (committee_id, user_id, role_code)
                     VALUES ($1, $2, $3)
                 `;
                 for (const member of members) {

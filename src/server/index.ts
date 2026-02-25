@@ -6,6 +6,7 @@ import loginHandler from '../../api/login';
 import proxyHandler from '../../api/proxy';
 import usersHandler from '../../api/users';
 import committeesHandler from '../../api/committees';
+import { default as singleCommitteeHandler } from '../../api/committee';
 import meetingsHandler from '../../api/meetings';
 import meetingHandler from '../../api/meeting';
 import meetingCommentsHandler from '../../api/meeting_comments';
@@ -26,6 +27,7 @@ app.all('/api/proxy', proxyHandler);
 // Corporate Governance APIs (Without auth middleware for now to ease local testing, but ideally should be protected)
 app.get('/api/users', usersHandler);
 app.all('/api/committees', committeesHandler);
+app.get('/api/committee', singleCommitteeHandler);
 app.get('/api/meetings', meetingsHandler);
 app.get('/api/meeting', meetingHandler); // uses ?id=...
 app.post('/api/meeting/comments', meetingCommentsHandler);

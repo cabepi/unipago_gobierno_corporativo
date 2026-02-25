@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Dashboard from './presentation/pages/Dashboard';
 import Home from './presentation/pages/Home';
 import { Committees } from './presentation/pages/Committees';
+import { CommitteeDetail } from './presentation/pages/CommitteeDetail';
 import { AuthProvider } from './presentation/context/AuthContext';
 import { Layout } from './presentation/components/Layout';
 import { useAuth } from './presentation/hooks/useAuth';
@@ -40,6 +41,11 @@ const ProtectedRoutes = () => {
         <Route path="/committees" element={
           <PermissionGate menuKey="/committees">
             <Committees />
+          </PermissionGate>
+        } />
+        <Route path="/committees/:id" element={
+          <PermissionGate menuKey="/committees">
+            <CommitteeDetail />
           </PermissionGate>
         } />
         <Route path="*" element={<Navigate to="/home" replace />} />
