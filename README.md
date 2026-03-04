@@ -1,73 +1,55 @@
-# React + TypeScript + Vite
+# Unipago Gobierno Corporativo
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## Descripción del Proyecto
+Plataforma integral para la gestión de gobierno corporativo. Permite la administración eficiente de comités, planificación y seguimiento de reuniones, gestión de actas, registro de asistencia, carga de documentos y control de firmas electrónicas.
 
-Currently, two official plugins are available:
+## Estado de Construcción
+**Fase de Desarrollo Activa (v0.1.0-alpha)**
+Actualmente, el proyecto cuenta con la base de arquitectura estructurada, frontend construido en React 19 y un backend en Node.js (Express) que expone servicios RESTful conectados a una base de datos PostgreSQL. Las funcionalidades principales de lectura y gestión de reuniones están en etapa de implementación.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Prerrequisitos
+- Node.js (v20 o superior recomendado)
+- PostgreSQL (v14 o superior recomendado)
+- Variables de entorno configuradas (basarse en `.env.example`)
 
-## React Compiler
+## Guía Rápida de Instalación
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+1.  **Clonar el repositorio y acceder al directorio:**
+    ```bash
+    git clone <url-del-repositorio>
+    cd unipago_gobierno_corporativo
+    ```
 
-## Expanding the ESLint configuration
+2.  **Instalar las dependencias:**
+    ```bash
+    npm install
+    ```
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+3.  **Configurar las variables de entorno:**
+    Copia el archivo `.env.example` a `.env` y ajusta los valores necesarios (conexión a BD, JWT secret, etc.).
+    ```bash
+    cp .env.example .env
+    ```
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Comandos de Desarrollo
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+-   **Iniciar el entorno de desarrollo (Frontend + Backend concurrentes):**
+    ```bash
+    npm run dev
+    ```
+    *El frontend estará disponible en `http://localhost:5173` y el backend en `http://localhost:3001/api`.*
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+-   **Compilar para producción:**
+    ```bash
+    npm run build
+    ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+-   **Visualizar compilación de producción:**
+    ```bash
+    npm run preview
+    ```
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+-   **Ejecutar el linter:**
+    ```bash
+    npm run lint
+    ```
